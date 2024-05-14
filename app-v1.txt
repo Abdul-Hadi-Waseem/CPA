@@ -1,0 +1,240 @@
+import streamlit as st
+import yfinance as yf
+from prophet import Prophet
+from prophet.plot import plot_plotly
+from datetime import date
+from plotly import graph_objs as go
+import requests
+from PIL import Image
+
+
+# Load an image for the page icon
+img = Image.open('logo.jpeg')
+st.set_page_config(page_title='predict crypto price', page_icon=img)
+
+# Hide the Streamlit menu and footer
+hide_menu_style = """
+    <style>
+        #MainMenu {visibility:hidden;}
+        footer {visibility:hidden;}
+    </style>
+"""
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+
+# Define the list of cryptocurrencies
+# url = 'https://example.com/api/endpoint'
+# response = requests.get(url)
+# if response.status_code == 200:
+#     # Get the response data
+#     api_response = response.json()
+    
+#     # Extract list of cryptocurrencies from the response
+#     cryptos_list = [entry['symbol'] for entry in api_response]
+    
+#     # Update the cryptos array with the extracted list
+#     cryptos = cryptos_list
+#     print(cryptos)
+# else:
+#     # Print an error message if the request was not successful
+#     print(f"Error: {response.status_code}")
+cryptos = ["BTC-USD", "ETH-USD", "USDT-USD", "BNB-USD", "USDC-USD", "SOL-USD", "ADA-USD", "XRP-USD", "LUNA1-USD",
+           "HEX-USD", "AVAX-USD", "DOT-USD", "DOGE-USD", "SHIB-USD", "MATIC-USD", "ATOM-USD", "LTC-USD"]
+
+# Define the Streamlit option menu
+selected = st.sidebar.selectbox("Navigation", ["Home", "Time Series Analysis", "Indicator", "Plan my purchase"])
+
+# Define the start and end dates for fetching data
+start = '2011-01-01'
+end = '2022-01-01'
+today = date.today().strftime("%Y-%m-%d")
+
+if selected == "Home":
+    st.title("TILL DATE DATA")
+    target_crypto = st.selectbox("ENTER THE CRYPTO TO BE PREDICTED", cryptos)
+
+    # Load data function
+    def load_data(ticker):
+        data = yf.download(ticker, start, today)
+        data.reset_index(inplace=True)
+        return data
+
+    data_load_state = st.text("loading data...")
+    data = load_data(target_crypto)
+    data_load_state.text("data loaded successfully....")
+
+    st.subheader("DATA FROM 2011 TO CURRENT DAY")
+    st.write(data.tail())
+
+    def org_graph():
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='stock_open'))
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name='stock_close'))
+        fig.layout.update(title_text="TILL DATE DATA", xaxis_rangeslider_visible=True)
+        st.plotly_chart(fig)
+    def org_graph():
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='stock_open'))
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name='stock_close'))
+        fig.layout.update(title_text="TILL DATE DATA", xaxis_rangeslider_visible=True)
+        st.plotly_chart(fig)
+
+    org_graph()
+
+    st.header("Lets understand the data")
+    st.subheader("Open")
+    st.write("Open indicates the price of cryptocurrency at the beginning of the day")
+    st.subheader("Close")
+    st.write("Close indicates the price of cryptocurrency at the end of the day")
+    st.subheader("Low")
+    st.write("Low indicates the least price of the cryptocurrency recorded in the whole day")
+    st.subheader("High")
+    st.write("High indicates the highest price of the cryptocurrency recorded in the whole day")
+    st.subheader("Volume")
+    st.write("Volume indicates the amount of cryptocurrency recorded at the end of the day")
+
+    # Calculate highest and lowest prices and their corresponding dates
+    max_price_date = data.loc[data['High'].idxmax()]['Date']
+    min_price_date = data.loc[data['Low'].idxmin()]['Date']
+
+    st.subheader("Highest and Lowest Prices")
+    st.write(f"Highest price ({data['High'].max()}) occurred on: {max_price_date}")
+    st.write(f"Lowest price ({data['Low'].min()}) occurred on: {min_price_date}")
+    # org_graph()
+
+    # st.header("Lets understand the data")
+    # st.subheader("Open")
+    # st.write("Open indicates the price of cryptocurrency at the beginning of the day")
+    # st.subheader("Close")
+    # st.write("Close indicates the price of cryptocurrency at the end of the day")
+    # st.subheader("Low")
+    # st.write("Low indicates the least price of the cryptocurrency recorded in the whole day")
+    # st.subheader("High")
+    # st.write("High indicates the highest price of the cryptocurrency recorded in the whole day")
+    # st.subheader("Volume")
+    # st.write("Volume indicates the amount of cryptocurrency recorded at the end of the day")
+
+# if selected == "Time Series Analysis":
+    target_crypto = st.sidebar.selectbox("ENTER THE CRYPTO TO BE PREDICTED", cryptos)
+
+    def load_data(ticker):
+        data = yf.download(ticker, start, today)
+        data.reset_index(inplace=True)
+        return data
+
+    data_load_state = st.text("loading data...")
+    data = load_data(target_crypto)
+    data_load_state.text("data loaded successfully....")
+
+    timeline = ("WEEKS", "MONTHS", "YEARS")
+    duration = st.sidebar.selectbox("ENTER THE DURATION TO PREDICT", timeline)
+    N = st.sidebar.slider("ENTER NUMBER", 0, 10)
+
+    if duration == "WEEKS":
+        no_of_days = N * 7
+    elif duration == "MONTHS":
+        no_of_days = N * 30
+    elif duration == "YEARS":
+        no_of_days = N * 365
+
+    df_train = data[['Date', 'Close']]
+    df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+    m = Prophet()
+    m.fit(df_train)
+    future = m.make_future_dataframe(periods=no_of_days)
+    forecast = m.predict(future)
+
+    st.subheader('PREDICTED DATA')
+    st.write(forecast.tail())
+    st.subheader('FORECAST DATA')
+    fig1 = plot_plotly(m, forecast)
+    st.plotly_chart(fig1)
+    st.write("FORECAST COMPONENTS")
+    fig2 = m.plot_components(forecast)
+    st.write(fig2)
+        # Calculate highest and lowest prices from forecast data
+  
+    # st.subheader("We can observe Wednesday has been recorded as the highest price day of the week in crypto market")
+    # st.subheader("Whereas Thursday has been recorded for the lowest price in the week")
+    # st.subheader("While in year May has been recorded as all-time high")
+    # st.subheader("July has been recorded as the all-time low in the year")
+if selected == "Time Series Analysis":
+    target_crypto = st.sidebar.selectbox("ENTER THE CRYPTO TO BE PREDICTED", cryptos)
+
+    def load_data(ticker):
+        data = yf.download(ticker, start, today)
+        data.reset_index(inplace=True)
+        return data
+
+    data_load_state = st.text("loading data...")
+    data = load_data(target_crypto)
+    data_load_state.text("data loaded successfully....")
+
+    timeline = ("WEEKS", "MONTHS", "YEARS")
+    duration = st.sidebar.selectbox("ENTER THE DURATION TO PREDICT", timeline)
+    N = st.sidebar.slider("ENTER NUMBER", 0, 10)
+
+    if duration == "WEEKS":
+        no_of_days = N * 7
+    elif duration == "MONTHS":
+        no_of_days = N * 30
+    elif duration == "YEARS":
+        no_of_days = N * 365
+
+    df_train = data[['Date', 'Close']]
+    df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+    m = Prophet()
+    m.fit(df_train)
+    future = m.make_future_dataframe(periods=no_of_days)
+    forecast = m.predict(future)
+
+    st.subheader('PREDICTED DATA')
+    st.write(forecast.tail())
+    st.subheader('FORECAST DATA')
+    fig1 = plot_plotly(m, forecast)
+    st.plotly_chart(fig1)
+    st.write("FORECAST COMPONENTS")
+    fig2 = m.plot_components(forecast)
+    st.write(fig2)
+    # max_price_date = data.loc[data['y'].idxmax()]['ds']
+    # min_price_date = data.loc[data['y'].idxmin()]['ds']
+
+    # st.subheader("Observed Highest and Lowest Prices")
+    # st.write(f"Observed highest price: {data['y'].max()} at {max_price_date}")
+    # st.write(f"Observed lowest price: {data['y'].min()} at {min_price_date}")
+    # st.subheader("These observations are based on the historical data.")
+    # Calculate highest and lowest prices from forecast data
+    # max_price_date = forecast.loc[forecast['yhat'].idxmax()]['ds']
+    # min_price_date = forecast.loc[forecast['yhat'].idxmin()]['ds']
+
+    # st.subheader("Predicted Highest and Lowest Prices")
+    # st.write(f"Predicted highest price: {forecast['yhat'].max()} at {max_price_date}")
+    # st.write(f"Predicted lowest price: {forecast['yhat'].min()} at {min_price_date}")
+    # st.subheader("These predictions are based on the forecasted data and can guide your decision-making process.")
+    # max_price_date = forecast.loc[forecast['yhat'].idxmax()]['ds']
+    # min_price_date = forecast.loc[forecast['yhat'].idxmin()]['ds']
+
+    # st.subheader("Predicted Highest and Lowest Prices")
+    # st.write(f"Predicted highest price: {forecast['yhat'].max()} at {max_price_date}")
+    # st.write(f"Predicted lowest price: {forecast['yhat'].min()} at {min_price_date}")
+    st.subheader("These predictions are based on the forecasted data and can guide your decision-making process.")
+
+if selected == "Plan my purchase":
+    target_crypto = st.sidebar.selectbox("ENTER THE CRYPTO TO BE PREDICTED", cryptos).replace('-',"")+"T"
+
+    def load_data(ticker):
+        data = yf.download(ticker, start='2019-01-01')
+        return data
+
+    data_load_state = st.text("loading data...")
+    data = load_data(target_crypto)
+    data_load_state.text("data loaded successfully....")
+
+    key = "https://api.binance.com/api/v3/ticker/price?symbol="
+    url = key + target_crypto
+    data = requests.get(url)
+    data = data.json()
+    # print(data.json())
+    currprice = float(data['price'])
+    money = st.number_input("ENTER THE MONEY YOU WANT TO INVEST IN DOLLARS", min_value=10.00, step=1.00)
+    amount = money / currprice
+    st.write("YOU WILL HAVE ", amount, " OF ", target_crypto, " IN YOUR WALLET")
