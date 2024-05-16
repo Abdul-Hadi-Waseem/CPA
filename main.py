@@ -1,12 +1,16 @@
 import streamlit as st
 import yfinance as yf
-from prophet import Prophet
-from prophet.plot import plot_plotly
+# from prophet import Prophet
+# from prophet.plot import plot_plotly
+from app.plot import plot_plotly
+# from app.make_future import plot_plotly
 from datetime import date
 from plotly import graph_objs as go
 import requests
 from PIL import Image
 import ta
+from app.make_future import MakeFuture
+
 
 # Set page configuration
 img = Image.open('logo.jpeg')
@@ -103,7 +107,7 @@ if selected == "Time Series Analysis":
 
     df_train = data[['Date', 'Close']]
     df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
-    m = Prophet()
+    m = MakeFuture()
     m.fit(df_train)
     future = m.make_future_dataframe(periods=no_of_days)
     forecast = m.predict(future)
@@ -111,6 +115,8 @@ if selected == "Time Series Analysis":
     st.subheader('PREDICTED DATA')
     st.dataframe(forecast.tail(), width=None)
     st.subheader('FORECAST DATA')
+    # m=MakeFuture()
+    
     fig1 = plot_plotly(m, forecast)
     st.plotly_chart(fig1, use_container_width=True)
     st.write("FORECAST COMPONENTS")
@@ -130,7 +136,7 @@ if selected == "Indicators":
         return df
 
     def forecast_with_prophet(data, periods):
-        m = Prophet()
+        m = MakeFuture()
         m.fit(data)
         future = m.make_future_dataframe(periods=periods)
         forecast = m.predict(future)
